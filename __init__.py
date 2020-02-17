@@ -62,9 +62,9 @@ class clock:
                             # blue = 0xff if seconds // 5 == i else 0
                             # green = 0xff if minutes // 5 == i else 0
                             # red = 0xff if hours % 12 == i else 0
-                            green = 0xff if i == (12 - minutes) else 0x00
-                            blue = 0xff if i == (12 - seconds) else 0x00
-                            red = 0xff if i == (12 - hours) else 0x00
+                            green = 0xff if i == (11 - minutes) else 0x00
+                            blue = 0xff if i == (11 - seconds) else 0x00
+                            red = 0xff if i == (11 - hours) else 0x00
                             ledData[3*i] = green >> self.dimmer
                             ledData[3*i+1] = red >> self.dimmer
                             ledData[3*i+2] = blue >> self.dimmer
