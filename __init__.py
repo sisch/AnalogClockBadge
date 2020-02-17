@@ -7,10 +7,10 @@ import utime
 import machine
 import wifi
 
-# TODO: Turn hands from CCW to CW
-# TODO: Button Press for Reconnect
-# TODO: Button Press for Resync
-# TODO: dimmer
+# TODO: Turn hands from CCW to CW: Done
+# TODO: Button Press for Reconnect:
+# TODO: Button Press for Resync:
+# TODO: dimmer: maybe done
 
 neopixel.enable()
 
@@ -22,6 +22,7 @@ display.flush()
 class clock:
     def __init__(self):
         self.running = True
+        self.dimmer = 2
         wifi.connect()
         if not wifi.wait():
             stop()
@@ -64,15 +65,25 @@ class clock:
                             green = 0xff if i == (12 - minutes) else 0x00
                             blue = 0xff if i == (12 - seconds) else 0x00
                             red = 0xff if i == (12 - hours) else 0x00
-                            ledData[3*i] = green >> 2
-                            ledData[3*i+1] = red >> 2
-                            ledData[3*i+2] = blue >> 2
+                            ledData[3*i] = green >> self.dimmer
+                            ledData[3*i+1] = red >> self.dimmer
+                            ledData[3*i+2] = blue >> self.dimmer
                     neopixel.send(bytes(ledData))
                     ledState = ledState + 1
                     if ledState > 254:
                         ledState = 0
                     time.sleep_ms(20)
 
+    def light_intensity_up(self, pressed):
+        if pressed:
+            self.dimmer = max(0, self.dimmer - 1)
+
+    def light_intensity_down(self, pressed):
+        if pressed:
+            self.dimmer = min(7, self.dimmer + 1)
+
 
 a = clock()
+buttons.attach(buttons.BTN_LEFT, a.light_intensity_down)
+buttons.attach(buttons.BTN_RIGHT, a.light_intensity_up)
 a.ledProc()
