@@ -6,6 +6,7 @@ import buttons
 import utime
 import machine
 import wifi
+import system
 
 # TODO: Turn hands from CCW to CW: Done
 # TODO: Button Press for Reconnect:
@@ -14,34 +15,51 @@ import wifi
 
 neopixel.enable()
 
-display.drawFill(0x000000)
-display.drawText(0, 0, "Connecting...", 0xFFFFFF, "7x5")
-display.flush()
+
+def display_connecting():
+    display.drawFill(0x000000)
+    display.drawText(0, 0, "Connecting...", 0xFFFFFF, "7x5")
+    display.flush()
+
+
+def display_connected(additional_info=[]):
+    display.drawFill(0x000000)
+    display.drawText(0, 0, "Connected!", 0xFFFFFF, "7x5")
+    for i, info in enumerate(additional_info):
+        display.drawText(0, 8*(i+1), info, 0xFFFFFF, "7x5")
+    display.flush()
+
+
+def reconnect(pressed):
+    if pressed:
+        wifi.disconnect()
+        display_connecting()
+        wifi.connect()
+        display_connected()
 
 
 class clock:
     def __init__(self):
         self.running = True
         self.dimmer = 2
+        self.rtc = machine.RTC()
+        display_connecting()
         wifi.connect()
         if not wifi.wait():
-            stop()
+            system.launcher()
         if wifi.status():
-            display.drawFill(0x000000)
-            display.drawText(0, 0, "Connected!", 0xFFFFFF, "7x5")
-            display.flush()
-            wifi.ntp()
-            self.rtc = machine.RTC()
-            self.rtc.ntp_sync("pool.ntp.org")
+            display_connected(["Dimmer: %d (lf,rt)" % self.dimmer])
+            self.sync_ntp(True)
             self.is_initialized = True
         else:
             ledData = [0x00, 0x00, 0x00, 0x00, 0x79, 0x00]*6
             neopixel.send(bytes(ledData))
-            stop()
+            system.launcher()
 
-    def updateDisplay(self):
-        display.drawFill(0x000000)
-        display.flush()
+    def sync_ntp(self, pressed):
+        if pressed:
+            self.rtc = machine.RTC()
+            self.rtc.ntp_sync("pool.ntp.org")
 
     def ledProc(self):
         if self.is_initialized:
@@ -77,13 +95,18 @@ class clock:
     def light_intensity_up(self, pressed):
         if pressed:
             self.dimmer = max(0, self.dimmer - 1)
+            display_connected(["Dimmer: %d (lf,rt)" % self.dimmer])
 
     def light_intensity_down(self, pressed):
         if pressed:
             self.dimmer = min(7, self.dimmer + 1)
+            display_connected(["Dimmer: %d (lf,rt)" % self.dimmer])
 
 
 a = clock()
 buttons.attach(buttons.BTN_LEFT, a.light_intensity_down)
 buttons.attach(buttons.BTN_RIGHT, a.light_intensity_up)
+buttons.attach(buttons.BTN_UP, reconnect)
+buttons.attach(buttons.BTN_DOWN, a.sync_ntp)
+
 a.ledProc()
